@@ -8,6 +8,7 @@ import {
   Tooltip,
   Cell,
 } from 'recharts';
+import { getCategoryLabel, getCategoryEmoji } from '../utils/categoryUtils';
 
 interface CategoryBreakdownChartProps {
   breakdown: {
@@ -28,29 +29,7 @@ const formatKgValue = (val: number): string => {
   return val >= 1000 ? `${(val / 1000).toFixed(1)}t` : `${Math.round(val)} kg`;
 };
 
-// Friendly labels mapper matching X(r) in original JS
-export const getCategoryLabel = (category: string): string => {
-  const map: Record<string, string> = {
-    transport: 'Transport',
-    home: 'Home Energy',
-    diet: 'Diet',
-    consumption: 'Shopping & Goods',
-    general: 'General',
-  };
-  return map[category] || category.charAt(0).toUpperCase() + category.slice(1);
-};
 
-// Category emojis
-export const getCategoryEmoji = (category: string): string => {
-  const map: Record<string, string> = {
-    transport: '🚗',
-    home: '🏠',
-    diet: '🥗',
-    consumption: '🛍️',
-    general: '🌍',
-  };
-  return map[category] || '📊';
-};
 
 // Color palettes matching tr in original JS
 const categoryColors: Record<string, string> = {

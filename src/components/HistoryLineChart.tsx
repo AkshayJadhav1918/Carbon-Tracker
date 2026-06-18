@@ -24,7 +24,7 @@ const CustomLineTooltip: React.FC<any> = ({ active, payload }) => {
   const { value, payload: dataPayload } = payload[0];
   return (
     <div className="bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-lg text-sm">
-      <p className="font-semibold text-gray-500">{dataPayload.fullDate}</p>
+      <p className="font-semibold text-gray-600">{dataPayload.fullDate}</p>
       <p className="font-bold text-gray-900">{formatKgValue(value)} CO₂e</p>
     </div>
   );

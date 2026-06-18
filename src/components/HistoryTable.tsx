@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Calendar, Trash2 } from 'lucide-react';
 import { HistoryEntry } from '../types';
-import { getCategoryLabel, getCategoryEmoji } from './CategoryBreakdownChart';
+import { getCategoryLabel, getCategoryEmoji } from '../utils/categoryUtils';
 
 interface HistoryTableProps {
   history: HistoryEntry[];
@@ -42,8 +42,8 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ history, onDeleteEnt
   if (!history || history.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center space-y-3">
-        <p className="text-gray-500">No calculation history found for this device yet.</p>
-        <p className="text-xs text-gray-400">Complete a carbon footprint calculation to record an entry.</p>
+        <p className="text-gray-600">No calculation history found for this device yet.</p>
+        <p className="text-xs text-gray-500">Complete a carbon footprint calculation to record an entry.</p>
       </div>
     );
   }
@@ -52,7 +52,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ history, onDeleteEnt
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
         <h3 className="text-sm font-semibold text-gray-700">Past Calculations ({history.length})</h3>
-        <p className="text-xs text-gray-400">Stored on your browser and account cache</p>
+        <p className="text-xs text-gray-500">Stored on your browser and account cache</p>
       </div>
       <div className="divide-y divide-gray-100">
         {history.map(entry => {
@@ -78,7 +78,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ history, onDeleteEnt
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-800">{formatDateStr(entry.timestamp)}</p>
-                    <p className="text-xs text-gray-400">Device footprint log</p>
+                    <p className="text-xs text-gray-500">Device footprint log</p>
                   </div>
                 </div>
 
@@ -87,13 +87,13 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ history, onDeleteEnt
                     <span className="text-base font-bold text-gray-900">
                       {formatKgValue(entry.total_kg)} CO₂e
                     </span>
-                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                    <span className="text-xs text-gray-600 flex items-center gap-1">
                       Driver: {categoryEmoji} {categoryLabel}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-primary-600 bg-primary-50 border border-primary-100 px-2.5 py-1 rounded-full">
+                    <span className="text-xs font-semibold text-primary-800 bg-primary-50 border border-primary-200 px-2.5 py-1 rounded-full">
                       Details
                     </span>
                     {isExpanded ? (
@@ -113,7 +113,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ history, onDeleteEnt
                 >
                   {/* Category Grid breakdown with values & percentages */}
                   <div>
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                    <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2.5">
                       Emission Breakdown
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -126,11 +126,11 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ history, onDeleteEnt
                         return (
                           <div key={cat} className="bg-white border border-gray-100 rounded-xl p-3 shadow-2xs">
                             <span className="text-lg block mb-1" aria-hidden="true">{col}</span>
-                            <span className="text-xs text-gray-500 font-medium block">{lbl}</span>
+                            <span className="text-xs text-gray-600 font-medium block">{lbl}</span>
                             <span className="text-sm font-bold text-gray-900 mt-1 block">
                               {formatKgValue(rawKg)}
                             </span>
-                            <span className="text-xs text-gray-400 block mt-0.5">
+                            <span className="text-xs text-gray-500 block mt-0.5">
                               {pct.toFixed(1)}% of total
                             </span>
                           </div>
@@ -142,7 +142,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ history, onDeleteEnt
                   {/* Saved insights recommendations inside table expansion */}
                   {entry.insights && entry.insights.length > 0 && (
                     <div>
-                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                      <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3">
                         Planned Target Actions
                       </h4>
                       <div className="space-y-2">
@@ -169,10 +169,10 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ history, onDeleteEnt
                                 <p className="text-sm text-gray-700 font-medium leading-relaxed">
                                   {insight.action}
                                 </p>
-                                <div className="flex flex-wrap gap-2 text-xs text-gray-400">
+                                <div className="flex flex-wrap gap-2 text-xs text-gray-500">
                                   <span>⏱️ {insight.timeframe}</span>
                                   <span>•</span>
-                                  <span className="text-primary-600 font-semibold">
+                                  <span className="text-primary-700 font-semibold">
                                     Est. Action Saving: -{formatKgValue(insight.estimated_saving_kg)} CO₂e
                                   </span>
                                 </div>

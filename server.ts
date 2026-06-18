@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 import { CarbonInputs, CarbonResult, Insight, InsightsResponse, HistoryEntry } from './src/types';
 
@@ -25,7 +24,9 @@ if (process.env.GEMINI_API_KEY) {
 }
 
 // In-memory fallback and persistent JSON-file path for history entries
-const HISTORY_FILE = path.join(process.cwd(), 'history-storage.json');
+const HISTORY_FILE = process.env.VERCEL
+  ? path.join('/tmp', 'history-storage.json')
+  : path.join(process.cwd(), 'history-storage.json');
 let historyCache: HistoryEntry[] = [];
 
 // Load historical entries on startup
@@ -373,6 +374,7 @@ app.get('/api/entries/:deviceId', (req, res) => {
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     // Development mode
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -392,4 +394,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;

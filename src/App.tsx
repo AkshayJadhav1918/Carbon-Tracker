@@ -17,9 +17,12 @@ import {
 } from 'lucide-react';
 import { CarbonInputs, CarbonResult, Insight, HistoryEntry } from './types';
 import ProgressBar from './components/ProgressBar';
-import CategoryBreakdownChart, { getCategoryEmoji, getCategoryLabel } from './components/CategoryBreakdownChart';
-import HistoryLineChart from './components/HistoryLineChart';
-import HistoryTable from './components/HistoryTable';
+import { getCategoryEmoji, getCategoryLabel } from './utils/categoryUtils';
+
+// Lazy load heavy chart and table components to optimize initial bundle size
+const CategoryBreakdownChart = React.lazy(() => import('./components/CategoryBreakdownChart'));
+const HistoryLineChart = React.lazy(() => import('./components/HistoryLineChart'));
+const HistoryTable = React.lazy(() => import('./components/HistoryTable'));
 
 // Default initial calculator form fields
 const initialInputs: CarbonInputs = {
@@ -50,7 +53,17 @@ export default function App() {
   const [carbonResult, setCarbonResult] = useState<CarbonResult | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [insightsLoading, setInsightsLoading] = useState(false);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('carbon_history_cache');
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch (e) {}
+      }
+    }
+    return [];
+  });
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // Synchronize or establish Client Device ID on load
@@ -61,7 +74,6 @@ export default function App() {
       localStorage.setItem('carbon_device_id', devId);
     }
     setInputs(prev => ({ ...prev, device_id: devId || '' }));
-    loadHistory(devId);
   }, []);
 
   // API Call to fetch list of past calculations for this client ID
@@ -73,6 +85,7 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setHistory(data);
+        localStorage.setItem('carbon_history_cache', JSON.stringify(data));
       }
     } catch (err) {
       console.error('Failed to load past calculations history:', err);
@@ -250,7 +263,11 @@ export default function App() {
   // Mock entry deleter for cached client convenience
   const handleDeleteHistoryEntry = async (id: string) => {
     // Standard interface deletes it from state
-    setHistory(prev => prev.filter(item => item.id !== id));
+    setHistory(prev => {
+      const updated = prev.filter(item => item.id !== id);
+      localStorage.setItem('carbon_history_cache', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handleTabChange = (tab: 'calculator' | 'results' | 'history') => {
@@ -259,6 +276,9 @@ export default function App() {
       setActiveTab('calculator');
     } else {
       setActiveTab(tab);
+      if (tab === 'history') {
+        loadHistory(inputs.device_id);
+      }
     }
   };
 
@@ -311,7 +331,7 @@ export default function App() {
       <div className="space-y-1">
         <label htmlFor={id} className="block text-sm font-semibold text-gray-700">
           {label}
-          {unit && <span className="text-gray-400 font-normal ml-1">({unit})</span>}
+          {unit && <span className="text-gray-600 font-normal ml-1">({unit})</span>}
         </label>
         <input
           id={id}
@@ -333,7 +353,7 @@ export default function App() {
           `}
         />
         {helper && (
-          <span id={helperId} className="block text-xs text-gray-500 leading-normal">
+          <span id={helperId} className="block text-xs text-gray-600 leading-normal">
             {helper}
           </span>
         )}
@@ -358,7 +378,7 @@ export default function App() {
               <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight font-display">
                 Carbon Tracker
               </h1>
-              <p className="text-[10px] text-gray-400 font-mono hidden sm:block">Annual Footprint Tracker</p>
+              <p className="text-[10px] text-gray-600 font-mono hidden sm:block">Annual Footprint Tracker</p>
             </div>
           </div>
 
@@ -368,7 +388,7 @@ export default function App() {
               className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
                 activeTab === 'calculator' || activeTab === 'results'
                   ? 'bg-white text-primary-700 shadow-xs border border-gray-100/50'
-                  : 'text-gray-500 hover:text-gray-900'
+                  : 'text-gray-700 hover:text-gray-900'
               }`}
               role="tab"
               aria-selected={activeTab === 'calculator' || activeTab === 'results'}
@@ -381,7 +401,7 @@ export default function App() {
               className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
                 activeTab === 'history'
                   ? 'bg-white text-primary-700 shadow-xs border border-gray-100/50'
-                  : 'text-gray-500 hover:text-gray-900'
+                  : 'text-gray-700 hover:text-gray-900'
               }`}
               role="tab"
               aria-selected={activeTab === 'history'}
@@ -397,7 +417,7 @@ export default function App() {
       <div className="bg-white border-b border-gray-100 px-4 py-3 sm:px-6">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 text-xs">
           <div className="flex items-center gap-1.5 text-gray-500">
-            <UserCheck className="w-4 h-4 text-primary-600" />
+            <UserCheck className="w-4 h-4 text-primary-700" />
             <span>
               Tracking active calculations profile for device:
             </span>
@@ -585,7 +605,7 @@ export default function App() {
                   <fieldset>
                     <legend className="text-sm font-semibold text-gray-700 mb-3">
                       Diet Type
-                      <span className="block text-xs font-normal text-gray-400 mt-0.5">
+                      <span className="block text-xs font-normal text-gray-600 mt-0.5">
                         Select the choice which closest represents your normal eating diet:
                       </span>
                     </legend>
@@ -620,7 +640,7 @@ export default function App() {
                           />
                           <div>
                             <span className="text-sm font-semibold text-gray-900 block">{label}</span>
-                            <span className="block text-xs text-gray-500 mt-0.5 inline-block">{desc}</span>
+                            <span className="block text-xs text-gray-600 mt-0.5 inline-block">{desc}</span>
                           </div>
                         </label>
                       ))}
@@ -632,7 +652,7 @@ export default function App() {
                   <label htmlFor="consumption_level" className="block text-sm font-semibold text-gray-700">
                     Shopping & Consumption Level
                   </label>
-                  <span id="consumption-helper" className="text-xs text-gray-500 block leading-normal">
+                  <span id="consumption-helper" className="text-xs text-gray-600 block leading-normal">
                     How often do you purchase new retail goods (fashion, electronics, furniture)?
                   </span>
                   <select
@@ -673,9 +693,9 @@ export default function App() {
                 disabled={isCalculating}
                 aria-busy={isCalculating}
                 className="
-                  flex items-center gap-2 bg-primary-600 text-white
-                  px-8 py-3.5 rounded-xl text-sm font-bold shadow-md shadow-primary-600/10
-                  hover:bg-primary-700 active:scale-[0.98] transition-all duration-200
+                  flex items-center gap-2 bg-primary-700 text-white
+                  px-8 py-3.5 rounded-xl text-sm font-bold shadow-md shadow-primary-700/10
+                  hover:bg-primary-800 active:scale-[0.98] transition-all duration-200
                   disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100
                   min-w-[260px] justify-center
                 "
@@ -716,9 +736,9 @@ export default function App() {
                     {carbonResult.total_kg >= 1000
                       ? `${(carbonResult.total_kg / 1000).toFixed(2)} tonnes`
                       : `${Math.round(carbonResult.total_kg)} kg`}{' '}
-                    <span className="text-base font-normal text-gray-500">of CO₂e / year</span>
+                    <span className="text-base font-normal text-gray-600">of CO₂e / year</span>
                   </p>
-                  <p className="text-xs text-gray-500 leading-relaxed">
+                  <p className="text-xs text-gray-600 leading-relaxed">
                     Estimated total greenhouse impact based on transportation models, energy grid intensity maps, organic diet margins, and material consumption indices.
                   </p>
                 </div>
@@ -758,19 +778,29 @@ export default function App() {
               <div className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 shadow-xs md:col-span-12 lg:col-span-7 space-y-4">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-800">Carbon Footprint Breakdown</h3>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Annual kg CO₂e breakdown by category</p>
+                  <p className="text-[11px] text-gray-600 mt-0.5">Annual kg CO₂e breakdown by category</p>
                 </div>
-                <CategoryBreakdownChart
-                  breakdown={carbonResult.breakdown}
-                  rankedCategories={carbonResult.ranked_categories}
-                />
+                <React.Suspense fallback={
+                  <div className="h-56 bg-gray-50/50 animate-pulse rounded-xl flex flex-col items-center justify-center text-xs text-gray-400 border border-gray-100/50">
+                    <svg className="animate-spin h-5 w-5 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>Loading breakdown chart...</span>
+                  </div>
+                }>
+                  <CategoryBreakdownChart
+                    breakdown={carbonResult.breakdown}
+                    rankedCategories={carbonResult.ranked_categories}
+                  />
+                </React.Suspense>
               </div>
 
               {/* Breakdown detail list */}
               <div className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 shadow-xs md:col-span-12 lg:col-span-5 space-y-4 flex flex-col justify-between">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-800">Primary Impact Driver</h3>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Where carbon emissions are heaviest</p>
+                  <p className="text-[11px] text-gray-600 mt-0.5">Where carbon emissions are heaviest</p>
                 </div>
 
                 <div className="space-y-3.5 py-2">
@@ -783,7 +813,7 @@ export default function App() {
                           <span className="text-base" aria-hidden="true">{col}</span>
                           <div>
                             <p className="font-semibold text-gray-800 leading-none">{lbl}</p>
-                            <p className="text-[10px] text-gray-400 mt-0.5">Sector rank #{idx + 1}</p>
+                            <p className="text-[10px] text-gray-600 mt-0.5">Sector rank #{idx + 1}</p>
                           </div>
                         </div>
                         <div className="text-right">
@@ -798,7 +828,7 @@ export default function App() {
                 </div>
 
                 <div className="p-3 bg-primary-50/50 border border-primary-100 rounded-xl flex items-start gap-2.5">
-                  <Award className="w-4 h-4 text-primary-600 shrink-0 mt-0.5 animate-bounce" />
+                  <Award className="w-4 h-4 text-primary-700 shrink-0 mt-0.5 animate-bounce" />
                   <p className="text-[10px] text-primary-700 leading-normal">
                     Reducing emissions in your top sectors (<span className="font-bold">{getCategoryLabel(carbonResult.ranked_categories[0].category)}</span>) offers the fastest pathway to meeting individual offset budgets.
                   </p>
@@ -816,13 +846,13 @@ export default function App() {
                       Custom Reduction Action Insights
                     </h3>
                   </div>
-                  <p className="text-[11px] text-gray-400 mt-0.5">
+                  <p className="text-[11px] text-gray-600 mt-0.5">
                     Action recommendations prioritized by carbon conservation intensity
                   </p>
                 </div>
                 
                 {insightsLoading && (
-                  <span className="text-xs text-primary-600 bg-primary-50 px-2.5 py-1 rounded-full animate-pulse font-medium shrink-0">
+                  <span className="text-xs text-primary-800 bg-primary-50 px-2.5 py-1 rounded-full animate-pulse font-medium shrink-0">
                     Syncing recommendations...
                   </span>
                 )}
@@ -857,11 +887,11 @@ export default function App() {
                           {insight.action}
                         </p>
                         <div className="border-t border-gray-100/80 pt-3 space-y-1">
-                          <p className="text-[10px] text-gray-400">⏱️ Implementation Timeframe:</p>
+                          <p className="text-[10px] text-gray-600">⏱️ Implementation Timeframe:</p>
                           <p className="text-[11px] font-semibold text-gray-600">{insight.timeframe}</p>
                           <div className="pt-1.5 flex justify-between items-center text-xs">
-                            <span className="text-gray-400 text-[10px]">Est saving:</span>
-                            <span className="font-bold text-primary-600 font-mono">
+                            <span className="text-gray-650 text-[10px]">Est saving:</span>
+                            <span className="font-bold text-primary-700 font-mono">
                               -{insight.estimated_saving_kg >= 1000
                                 ? `${(insight.estimated_saving_kg / 1000).toFixed(1)}t`
                                 : `${Math.round(insight.estimated_saving_kg)} kg`}{' '}
@@ -873,7 +903,7 @@ export default function App() {
                     );
                   })
                 ) : (
-                  <div className="col-span-3 text-center py-6 text-xs text-gray-400">
+                  <div className="col-span-3 text-center py-6 text-xs text-gray-600">
                     Generating suggestions to optimize target profiles...
                   </div>
                 )}
@@ -887,19 +917,41 @@ export default function App() {
         {activeTab === 'history' && (
           <div className="space-y-6 animate-fade-in text-gray-850">
             {/* Trend Graphs render nicely */}
-            {history.length >= 2 && <HistoryLineChart history={history} />}
+            {history.length >= 2 && (
+              <React.Suspense fallback={
+                <div className="h-48 bg-white border border-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center text-xs text-gray-400">
+                  <svg className="animate-spin h-5 w-5 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span>Loading trend chart...</span>
+                </div>
+              }>
+                <HistoryLineChart history={history} />
+              </React.Suspense>
+            )}
 
             {/* History logs with expanding Detail rows */}
             {isLoadingHistory ? (
               <div className="text-center py-12 space-y-2 select-none">
-                <svg className="animate-spin h-6 w-6 text-primary-600 mx-auto" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-6 w-6 text-primary-700 mx-auto" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
                 <p className="text-xs text-gray-450">Retrieving calculations history cache...</p>
               </div>
             ) : (
-              <HistoryTable history={history} onDeleteEntry={handleDeleteHistoryEntry} />
+              <React.Suspense fallback={
+                <div className="h-32 bg-white border border-gray-100 rounded-2xl p-8 flex flex-col items-center justify-center text-xs text-gray-400">
+                  <svg className="animate-spin h-5 w-5 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span>Loading history table...</span>
+                </div>
+              }>
+                <HistoryTable history={history} onDeleteEntry={handleDeleteHistoryEntry} />
+              </React.Suspense>
             )}
           </div>
         )}
@@ -912,10 +964,10 @@ export default function App() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-6">
             <div className="space-y-2">
               <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-primary-600" />
+                <BookOpen className="w-3.5 h-3.5 text-primary-700" />
                 Data Sources
               </h2>
-              <ul className="text-xs text-gray-500 space-y-1 list-none leading-relaxed">
+              <ul className="text-xs text-gray-600 space-y-1 list-none leading-relaxed">
                 <li>UK DEFRA 2023 — Transport & Home Energy factors</li>
                 <li>US EPA 2023 — Electricity grid emissions</li>
                 <li>ICAO Carbon Calculator — Aviation emissions</li>
@@ -926,19 +978,19 @@ export default function App() {
             
             <div className="space-y-2">
               <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5 text-primary-600" />
+                <Globe className="w-3.5 h-3.5 text-primary-700" />
                 Methodology & Education Disclaimer
               </h2>
-              <p className="text-xs text-gray-500 leading-normal">
+              <p className="text-xs text-gray-600 leading-normal">
                 This tool provides estimates for educational purposes using peer-reviewed emission coefficients. Individual results may vary based on local electricity grid mix, heating system performance, vehicle fuel efficiency, and personal shopping cycles.
               </p>
             </div>
           </div>
 
-          <div className="border-t border-gray-100 pt-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-[11px] text-gray-400">
+          <div className="border-t border-gray-100 pt-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-[11px] text-gray-600">
             <span>© 2024 Carbon Footprint Awareness Platform</span>
             <span className="flex items-center gap-1">
-              Powered by <span className="font-semibold text-primary-600 font-display">Gemini AI</span> & full-stack React models.
+              Powered by <span className="font-semibold text-primary-700 font-display">Gemini AI</span> & full-stack React models.
             </span>
           </div>
         </div>
