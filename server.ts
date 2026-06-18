@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { z } from 'zod';
 import { GoogleGenAI, Type } from '@google/genai';
 import { CarbonInputs, CarbonResult, Insight, InsightsResponse, HistoryEntry } from './src/types';
@@ -482,7 +481,11 @@ async function startServer() {
   });
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+const isEntrypoint = 
+  process.argv[1] && 
+  (process.argv[1].endsWith('server.ts') || process.argv[1].endsWith('server.cjs') || process.argv[1].endsWith('server.js'));
+
+if (isEntrypoint) {
   startServer();
 }
 
