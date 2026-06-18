@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { GoogleGenAI, Type } from '@google/genai';
 import { CarbonInputs, CarbonResult, Insight, InsightsResponse, HistoryEntry } from './src/types';
 
@@ -394,7 +395,8 @@ async function startServer() {
   });
 }
 
-if (!process.env.VERCEL) {
+export { app };
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   startServer();
 }
 
