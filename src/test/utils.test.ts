@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
-import { app } from '../../server';
+import app from '../../server';
 import { getCategoryLabel, getCategoryEmoji } from '../utils/categoryUtils';
 
 describe('Category Utility Helpers', () => {

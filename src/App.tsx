@@ -384,6 +384,7 @@ export default function App() {
 
           <nav className="flex items-center gap-1 bg-gray-100 border border-gray-100 p-1 rounded-xl" role="tablist">
             <button
+              id="tab-calculator"
               onClick={() => handleTabChange('calculator')}
               className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
                 activeTab === 'calculator' || activeTab === 'results'
@@ -397,6 +398,7 @@ export default function App() {
               Calculator
             </button>
             <button
+              id="tab-history"
               onClick={() => handleTabChange('history')}
               className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
                 activeTab === 'history'
@@ -431,6 +433,7 @@ export default function App() {
               onChange={e => handleDeviceIDChange(e.target.value)}
               placeholder="Enter device sync code"
               className="px-2.5 py-1.5 bg-gray-50 border border-gray-250 rounded-lg text-gray-700 font-mono w-48 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              aria-label="Device sync code for tracking your calculation history"
             />
             {formErrors.device_id && (
               <span className="text-[10px] text-red-500 font-medium">⚠️ Format error</span>
@@ -444,8 +447,9 @@ export default function App() {
         
         {/* Tab 1: Form Questionnaire Inputs */}
         {activeTab === 'calculator' && (
-          <form
-            onSubmit={handleSubmitForm}
+          <div role="tabpanel" aria-labelledby="tab-calculator">
+            <form
+              onSubmit={handleSubmitForm}
             aria-label="Carbon footprint calculator input form"
             noValidate
             className="space-y-8 animate-fade-in"
@@ -717,11 +721,13 @@ export default function App() {
               </button>
             </div>
           </form>
+          </div>
         )}
 
         {/* Tab 2: Results Advisory Dashboard */}
         {activeTab === 'results' && carbonResult && (
-          <div className="space-y-8 animate-fade-in text-gray-850">
+          <div role="tabpanel" aria-labelledby="tab-calculator">
+            <div className="space-y-8 animate-fade-in text-gray-850">
             
             {/* Top Row: General results statement and summary score */}
             <div className="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8 shadow-xs relative overflow-hidden">
@@ -911,11 +917,13 @@ export default function App() {
             </div>
 
           </div>
+          </div>
         )}
 
         {/* Tab 3: Historical Records table */}
         {activeTab === 'history' && (
-          <div className="space-y-6 animate-fade-in text-gray-850">
+          <div role="tabpanel" aria-labelledby="tab-history">
+            <div className="space-y-6 animate-fade-in text-gray-850">
             {/* Trend Graphs render nicely */}
             {history.length >= 2 && (
               <React.Suspense fallback={
@@ -953,6 +961,7 @@ export default function App() {
                 <HistoryTable history={history} onDeleteEntry={handleDeleteHistoryEntry} />
               </React.Suspense>
             )}
+          </div>
           </div>
         )}
 

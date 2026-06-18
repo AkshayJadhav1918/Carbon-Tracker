@@ -2,12 +2,48 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { z } from 'zod';
 import { GoogleGenAI, Type } from '@google/genai';
 import { CarbonInputs, CarbonResult, Insight, InsightsResponse, HistoryEntry } from './src/types';
 
+// Zod schemas for request validation
+const carbonInputsSchema = z.object({
+  transport_km_car_petrol: z.number().nonnegative(),
+  transport_km_car_diesel: z.number().nonnegative(),
+  transport_km_car_electric: z.number().nonnegative(),
+  transport_km_bus: z.number().nonnegative(),
+  transport_km_train: z.number().nonnegative(),
+  flights_short_haul: z.number().nonnegative(),
+  flights_long_haul: z.number().nonnegative(),
+  home_electricity_kwh: z.number().nonnegative(),
+  home_gas_kwh: z.number().nonnegative(),
+  household_size: z.number().int().positive(),
+  diet_type: z.enum(['meat_heavy', 'meat_medium', 'vegetarian', 'vegan']),
+  consumption_level: z.enum(['high', 'medium', 'low']),
+  device_id: z.string(),
+});
+
+const carbonResultSchema = z.object({
+  total_kg: z.number(),
+  breakdown: z.object({
+    transport: z.number(),
+    home: z.number(),
+    diet: z.number(),
+    consumption: z.number(),
+  }),
+  vs_global_average_pct: z.number(),
+  vs_paris_target_pct: z.number(),
+  ranked_categories: z.array(z.object({
+    category: z.enum(['transport', 'home', 'diet', 'consumption']),
+    kg: z.number(),
+    percentage: z.number(),
+  })),
+  device_id: z.string(),
+});
+
 // Initialize Express app
 const app = express();
-const PORT = 3000;
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
 app.use(express.json());
 
@@ -52,9 +88,19 @@ function saveHistoryToDisk() {
 
 // 1. API: Carbon Footprint Calculator
 // POST /api/calculate
+/**
+ * @description Calculates carbon footprint based on transportation, energy, diet, and consumption inputs.
+ * @param {express.Request} req - Express request object containing CarbonInputs body.
+ * @param {express.Response} res - Express response object.
+ * @returns {void}
+ */
 app.post('/api/calculate', (req, res) => {
   try {
-    const inputs: CarbonInputs = req.body;
+    const parseResult = carbonInputsSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ error: 'Invalid input', issues: parseResult.error.issues });
+    }
+    const inputs: CarbonInputs = parseResult.data;
 
     // Isolate values & sanitize (fall back to 0 if null or undefined)
     const petrol = inputs.transport_km_car_petrol || 0;
@@ -151,6 +197,11 @@ app.post('/api/calculate', (req, res) => {
 });
 
 // Rules-based fallback for recommendations if Gemini fails or is disabled
+/**
+ * @description Generates a fallback set of rules-based carbon-reduction insights based on a carbon scorecard result.
+ * @param {CarbonResult} result - The compiled carbon footprint scorecard.
+ * @returns {Insight[]} List of action recommendations prioritized by impact.
+ */
 function getRulesBasedInsights(result: CarbonResult): Insight[] {
   const insights: Insight[] = [];
   const sorted = [...result.ranked_categories]; // already sorted desc by kg
@@ -221,6 +272,12 @@ function getRulesBasedInsights(result: CarbonResult): Insight[] {
 
 // 2. API: Get AI Reduction insights powered by Google Gemini AI
 // POST /api/insights
+/**
+ * @description Serves reduction insights for a carbon scorecard, invoking Gemini API or fallback rules.
+ * @param {express.Request} req - Express request containing carbon_result and device_id.
+ * @param {express.Response} res - Express response object.
+ * @returns {Promise<void>}
+ */
 app.post('/api/insights', async (req, res) => {
   const result: CarbonResult = req.body.carbon_result;
   const deviceId = req.body.device_id;
@@ -325,29 +382,39 @@ Constraints:
 
 // 3. API: Save Completed Carbon Record
 // POST /api/entries
+/**
+ * @description Saves a completed carbon footprint log entry to history.
+ * @param {express.Request} req - Express request containing carbon_result and optional insights.
+ * @param {express.Response} res - Express response object.
+ * @returns {void}
+ */
 app.post('/api/entries', (req, res) => {
   try {
     const { carbon_result, insights } = req.body;
 
-    if (!carbon_result) {
-      return res.status(400).json({ error: 'Missing carbon_result object.' });
+    const parseResult = carbonResultSchema.safeParse(carbon_result);
+    if (!parseResult.success) {
+      return res.status(400).json({ error: 'Invalid input', issues: parseResult.error.issues });
     }
 
-    const deviceId = carbon_result.device_id || 'anonymous';
+    const deviceId = parseResult.data.device_id;
     const newEntry: HistoryEntry = {
       id: `rc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
       timestamp: new Date().toISOString(),
-      total_kg: carbon_result.total_kg,
-      breakdown: carbon_result.breakdown,
-      vs_global_average_pct: carbon_result.vs_global_average_pct,
-      vs_paris_target_pct: carbon_result.vs_paris_target_pct,
-      ranked_categories: carbon_result.ranked_categories,
+      total_kg: parseResult.data.total_kg,
+      breakdown: parseResult.data.breakdown,
+      vs_global_average_pct: parseResult.data.vs_global_average_pct,
+      vs_paris_target_pct: parseResult.data.vs_paris_target_pct,
+      ranked_categories: parseResult.data.ranked_categories,
       insights: insights || [],
       device_id: deviceId,
     };
 
     // Insert at front (newest first)
     historyCache.unshift(newEntry);
+    if (historyCache.length > 500) {
+      historyCache.splice(500);
+    }
     saveHistoryToDisk();
 
     res.json({ status: 'success', entry_id: newEntry.id });
@@ -359,9 +426,18 @@ app.post('/api/entries', (req, res) => {
 
 // 4. API: Get Historical Log entries
 // GET /api/entries/:deviceId
+/**
+ * @description Retrieves the historical carbon log entries for a device ID.
+ * @param {express.Request} req - Express request containing deviceId parameter.
+ * @param {express.Response} res - Express response object.
+ * @returns {void}
+ */
 app.get('/api/entries/:deviceId', (req, res) => {
   try {
     const deviceId = req.params.deviceId;
+    if (!/^[a-zA-Z0-9_-]{8,64}$/.test(deviceId)) {
+      return res.status(400).json({ error: 'Invalid device ID format' });
+    }
     const userHistory = historyCache.filter(item => item.device_id === deviceId);
     res.json(userHistory);
   } catch (err: any) {
@@ -395,7 +471,6 @@ async function startServer() {
   });
 }
 
-export { app };
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   startServer();
 }
