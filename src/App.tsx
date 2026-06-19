@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Car,
   Plane,
@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { CarbonInputs, CarbonResult, Insight, HistoryEntry } from './types';
 import ProgressBar from './components/ProgressBar';
+import InputField from './components/InputField';
+import SectionHeader from './components/SectionHeader';
 import { getCategoryEmoji, getCategoryLabel } from './utils/categoryUtils';
 
 // Lazy load heavy chart and table components to optimize initial bundle size
@@ -137,36 +139,29 @@ export default function App() {
     return undefined;
   };
 
-  const handleInputChange = (name: keyof CarbonInputs, val: any) => {
+  const handleInputChange = useCallback((name: keyof CarbonInputs, val: any) => {
     setInputs(prev => ({ ...prev, [name]: val }));
-    
     if (touchedFields[name]) {
       const error = validateField(name, val);
-      setFormErrors(prev => ({
-        ...prev,
-        [name]: error || '',
-      }));
+      setFormErrors(prev => ({ ...prev, [name]: error || '' }));
     }
     if (calcError) setCalcError(null);
-  };
+  }, [touchedFields, calcError]);
 
-  const handleInputBlur = (name: keyof CarbonInputs) => {
+  const handleInputBlur = useCallback((name: keyof CarbonInputs) => {
     setTouchedFields(prev => ({ ...prev, [name]: true }));
     const error = validateField(name, inputs[name]);
-    setFormErrors(prev => ({
-      ...prev,
-      [name]: error || '',
-    }));
-  };
+    setFormErrors(prev => ({ ...prev, [name]: error || '' }));
+  }, [inputs]);
 
   // Switch Device ID to load alternative dashboard history profiles
-  const handleDeviceIDChange = (newId: string) => {
+  const handleDeviceIDChange = useCallback((newId: string) => {
     handleInputChange('device_id', newId);
     if (/^[a-zA-Z0-9_-]{8,64}$/.test(newId)) {
       localStorage.setItem('carbon_device_id', newId);
       loadHistory(newId);
     }
-  };
+  }, [handleInputChange]);
 
   // Submit complete questionnaire
   const handleSubmitForm = async (e: React.FormEvent) => {
@@ -260,112 +255,26 @@ export default function App() {
     }
   };
 
-  // Mock entry deleter for cached client convenience
-  const handleDeleteHistoryEntry = async (id: string) => {
-    // Standard interface deletes it from state
+  const handleDeleteHistoryEntry = useCallback(async (id: string) => {
+    try {
+      await fetch(`/api/entries/${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Failed to delete entry:', err);
+    }
     setHistory(prev => {
       const updated = prev.filter(item => item.id !== id);
       localStorage.setItem('carbon_history_cache', JSON.stringify(updated));
       return updated;
     });
-  };
+  }, []);
 
-  const handleTabChange = (tab: 'calculator' | 'results' | 'history') => {
-    if (tab === 'calculator' && carbonResult) {
-      // If we already compiled values, keep on results or let them click back
-      setActiveTab('calculator');
-    } else {
-      setActiveTab(tab);
-      if (tab === 'history') {
-        loadHistory(inputs.device_id);
-      }
+  const handleTabChange = useCallback((tab: 'calculator' | 'results' | 'history') => {
+    setActiveTab(tab);
+    if (tab === 'history') {
+      loadHistory(inputs.device_id);
     }
-  };
+  }, [inputs.device_id]);
 
-  // Helper form label header renderer
-  const SectionHeader = ({ icon, title, description, id }: { icon: string, title: string, description: string, id: string }) => (
-    <div className="flex items-start gap-3 mb-5 pb-3 border-b border-gray-100">
-      <span className="text-2xl" aria-hidden="true">{icon}</span>
-      <div>
-        <h2 id={id} className="text-lg font-bold text-gray-900 font-display">
-          {title}
-        </h2>
-        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-          {description}
-        </p>
-      </div>
-    </div>
-  );
-
-  // Form input field renderer
-  const InputField = ({
-    id,
-    label,
-    value,
-    unit,
-    helper,
-    error,
-    step = 'any',
-    min = 0,
-    max,
-    onChange,
-    onBlur,
-  }: {
-    id: keyof CarbonInputs;
-    label: string;
-    value: number;
-    unit: string;
-    helper: string;
-    error?: string;
-    step?: number | string;
-    min?: number;
-    max?: number;
-    onChange: (val: number) => void;
-    onBlur: () => void;
-  }) => {
-    const helperId = `${id}-helper`;
-    const errorId = `${id}-error`;
-    const ariaDescribedBy = [helper ? helperId : '', error ? errorId : ''].filter(Boolean).join(' ');
-
-    return (
-      <div className="space-y-1">
-        <label htmlFor={id} className="block text-sm font-semibold text-gray-700">
-          {label}
-          {unit && <span className="text-gray-600 font-normal ml-1">({unit})</span>}
-        </label>
-        <input
-          id={id}
-          type="number"
-          value={value === 0 ? '' : value}
-          min={min}
-          max={max}
-          step={step}
-          placeholder="0"
-          aria-describedby={ariaDescribedBy || undefined}
-          aria-invalid={!!error}
-          onChange={e => onChange(parseFloat(e.target.value) || 0)}
-          onBlur={onBlur}
-          className={`
-            w-full rounded-xl border px-3.5 py-2.5 text-sm focus:outline-none
-            focus:ring-2 focus:ring-primary-500 focus:border-primary-500
-            transition-all duration-150 font-mono
-            ${error ? 'border-red-400 bg-red-50/50' : 'border-gray-200 bg-white hover:border-gray-300'}
-          `}
-        />
-        {helper && (
-          <span id={helperId} className="block text-xs text-gray-600 leading-normal">
-            {helper}
-          </span>
-        )}
-        {error && (
-          <span id={errorId} role="alert" className="text-xs text-red-600 flex items-center gap-1 font-medium mt-1">
-            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-            {error}
-          </span>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#fbfcfd]">
@@ -388,7 +297,22 @@ export default function App() {
             </div>
           </div>
 
-          <nav className="flex items-center gap-1 bg-gray-100 border border-gray-100 p-1 rounded-xl" role="tablist">
+          <nav
+            className="flex items-center gap-1 bg-gray-100 border border-gray-100 p-1 rounded-xl"
+            role="tablist"
+            onKeyDown={(e) => {
+              const tabs: Array<'calculator' | 'history'> = ['calculator', 'history'];
+              const current = tabs.indexOf(activeTab === 'results' ? 'calculator' : activeTab as any);
+              if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                handleTabChange(tabs[(current + 1) % tabs.length]);
+              }
+              if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                handleTabChange(tabs[(current - 1 + tabs.length) % tabs.length]);
+              }
+            }}
+          >
             <button
               id="tab-calculator"
               onClick={() => handleTabChange('calculator')}
@@ -649,7 +573,10 @@ export default function App() {
                             className="mt-1 accent-primary-600 focus:ring-primary-500 shrink-0"
                           />
                           <div>
-                            <span className="text-sm font-semibold text-gray-900 block">{label}</span>
+                            <span className="text-sm font-semibold text-gray-900 block">
+                            <span aria-hidden="true">{label.split(' ')[0]} </span>
+                            {label.split(' ').slice(1).join(' ')}
+                          </span>
                             <span className="block text-xs text-gray-600 mt-0.5 inline-block">{desc}</span>
                           </div>
                         </label>
@@ -840,7 +767,7 @@ export default function App() {
                 </div>
 
                 <div className="p-3 bg-primary-50/50 border border-primary-100 rounded-xl flex items-start gap-2.5">
-                  <Award className="w-4 h-4 text-primary-700 shrink-0 mt-0.5 animate-bounce" />
+                  <Award className="w-4 h-4 text-primary-700 shrink-0 mt-0.5 motion-safe:animate-bounce" />
                   <p className="text-[10px] text-primary-700 leading-normal">
                     Reducing emissions in your top sectors (<span className="font-bold">{getCategoryLabel(carbonResult.ranked_categories[0].category)}</span>) offers the fastest pathway to meeting individual offset budgets.
                   </p>
@@ -870,6 +797,7 @@ export default function App() {
                 )}
               </div>
 
+              <div aria-live="polite" aria-atomic="false">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {insights && insights.length > 0 ? (
                   insights.map((insight, idx) => {
@@ -919,6 +847,7 @@ export default function App() {
                     Generating suggestions to optimize target profiles...
                   </div>
                 )}
+              </div>
               </div>
             </div>
 
@@ -1003,7 +932,7 @@ export default function App() {
           </div>
 
           <div className="border-t border-gray-100 pt-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-[11px] text-gray-600">
-            <span>© 2024 Carbon Footprint Awareness Platform</span>
+            <span>© 2026 Carbon Footprint Awareness Platform</span>
             <span className="flex items-center gap-1">
               Powered by <span className="font-semibold text-primary-700 font-display">Gemini AI</span> & full-stack React models.
             </span>

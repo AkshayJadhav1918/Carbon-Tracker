@@ -111,3 +111,42 @@ describe('POST /api/calculate — validation errors', () => {
     expect(res.status).toBe(400);
   });
 });
+
+// ─── DELETE /api/entries/:entryId ────────────────────────────────────────────
+describe('DELETE /api/entries/:entryId', () => {
+  it('deletes an existing entry successfully', async () => {
+    const carbonResult = {
+      total_kg: 4000,
+      breakdown: { transport: 1500, home: 800, diet: 1100, consumption: 600 },
+      vs_global_average_pct: 100,
+      vs_paris_target_pct: 200,
+      ranked_categories: [
+        { category: 'transport', kg: 1500, percentage: 37.5 },
+        { category: 'diet', kg: 1100, percentage: 27.5 },
+        { category: 'home', kg: 800, percentage: 20 },
+        { category: 'consumption', kg: 600, percentage: 15 },
+      ],
+      device_id: 'delete-test-device',
+    };
+
+    const saveRes = await request(app)
+      .post('/api/entries')
+      .send({ carbon_result: carbonResult, insights: [] })
+      .set('Accept', 'application/json');
+
+    expect(saveRes.status).toBe(200);
+    const entryId = saveRes.body.entry_id;
+
+    const deleteRes = await request(app).delete(`/api/entries/${entryId}`);
+    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.body.status).toBe('deleted');
+
+    const getRes = await request(app).get('/api/entries/delete-test-device');
+    expect(getRes.body.find((e: any) => e.id === entryId)).toBeUndefined();
+  });
+
+  it('returns 404 for non-existent entry ID', async () => {
+    const res = await request(app).delete('/api/entries/nonexistent-entry-id-xyz');
+    expect(res.status).toBe(404);
+  });
+});

@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { z } from 'zod';
 import cors from 'cors';
+import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { GoogleGenAI, Type } from '@google/genai';
 import { CarbonInputs, CarbonResult, Insight, InsightsResponse, HistoryEntry } from './src/types';
@@ -46,10 +47,17 @@ const carbonResultSchema = z.object({
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
+app.use(helmet({
+  contentSecurityPolicy: false, // We set our own CSP below
+  crossOriginEmbedderPolicy: false,
+}));
+
 // CORS policy — restrict to known app origin
 app.use(cors({
-  origin: process.env.APP_URL || 'http://localhost:3000',
-  methods: ['GET', 'POST'],
+  origin: process.env.NODE_ENV === 'production'
+    ? (process.env.APP_URL || 'https://carbon-tracker-phi.vercel.app')
+    : 'http://localhost:3000',
+  methods: ['GET', 'POST', 'DELETE'],
   allowedHeaders: ['Content-Type'],
 }));
 
@@ -105,6 +113,18 @@ const HISTORY_FILE = process.env.VERCEL
   : path.join(process.cwd(), 'history-storage.json');
 let historyCache: HistoryEntry[] = [];
 
+// Map for O(1) device lookups
+let historyCacheByDevice = new Map<string, HistoryEntry[]>();
+
+function rebuildDeviceMap() {
+  historyCacheByDevice = new Map();
+  for (const entry of historyCache) {
+    const existing = historyCacheByDevice.get(entry.device_id) || [];
+    existing.push(entry);
+    historyCacheByDevice.set(entry.device_id, existing);
+  }
+}
+
 // Load historical entries on startup
 try {
   if (fs.existsSync(HISTORY_FILE)) {
@@ -116,10 +136,14 @@ try {
   console.error('Error loading history entries:', error);
 }
 
+// Call after loading from disk
+rebuildDeviceMap();
+
 // Helper to save historical entries safely
 function saveHistoryToDisk() {
   try {
     fs.writeFileSync(HISTORY_FILE, JSON.stringify(historyCache, null, 2), 'utf-8');
+    rebuildDeviceMap();
   } catch (error) {
     console.error('Error saving history entries to disk:', error);
   }
@@ -482,11 +506,38 @@ app.get('/api/entries/:deviceId', (req, res) => {
     if (!/^[a-zA-Z0-9_-]{8,64}$/.test(deviceId)) {
       return res.status(400).json({ error: 'Invalid device ID format' });
     }
-    const userHistory = historyCache.filter(item => item.device_id === deviceId);
+    const userHistory = historyCacheByDevice.get(deviceId) || [];
     res.json(userHistory);
   } catch (err: any) {
     console.error('Get history failure:', err);
     res.status(500).json({ error: 'Failed to extract past carbon records' });
+  }
+});
+
+// 5. API: Delete a specific History Entry
+// DELETE /api/entries/:entryId
+/**
+ * @description Deletes a specific carbon log entry by ID.
+ * @param {express.Request} req - Express request containing entryId parameter.
+ * @param {express.Response} res - Express response object.
+ * @returns {void}
+ */
+app.delete('/api/entries/:entryId', (req, res) => {
+  try {
+    const entryId = req.params.entryId;
+    if (!entryId || entryId.length > 64) {
+      return res.status(400).json({ error: 'Invalid entry ID' });
+    }
+    const initialLength = historyCache.length;
+    historyCache = historyCache.filter(item => item.id !== entryId);
+    if (historyCache.length === initialLength) {
+      return res.status(404).json({ error: 'Entry not found' });
+    }
+    saveHistoryToDisk();
+    res.json({ status: 'deleted', entry_id: entryId });
+  } catch (err: any) {
+    console.error('Delete entry failure:', err);
+    res.status(500).json({ error: 'Failed to delete entry' });
   }
 });
 
