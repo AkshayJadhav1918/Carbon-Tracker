@@ -1,3 +1,6 @@
+assets/
+analyze.ts
+search-charts.ts
 node_modules/
 build/
 dist/

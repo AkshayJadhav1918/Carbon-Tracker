@@ -369,6 +369,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#fbfcfd]">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-green-700 focus:rounded focus:shadow-lg focus:outline-none"
+      >
+        Skip to main content
+      </a>
       {/* 1. STICKY ACTION HEADER BAR */}
       <header className="border-b border-gray-100 bg-white sticky top-0 z-50 py-4 px-4 sm:px-6 shadow-2xs">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
@@ -443,7 +449,7 @@ export default function App() {
       </div>
 
       {/* 3. MAIN DASHBOARD STAGE BODY */}
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-8">
+      <main id="main-content" className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-8">
         
         {/* Tab 1: Form Questionnaire Inputs */}
         {activeTab === 'calculator' && (

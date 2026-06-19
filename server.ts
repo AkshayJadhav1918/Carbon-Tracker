@@ -2,6 +2,8 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { z } from 'zod';
+import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { GoogleGenAI, Type } from '@google/genai';
 import { CarbonInputs, CarbonResult, Insight, InsightsResponse, HistoryEntry } from './src/types';
 
@@ -19,7 +21,7 @@ const carbonInputsSchema = z.object({
   household_size: z.number().int().positive(),
   diet_type: z.enum(['meat_heavy', 'meat_medium', 'vegetarian', 'vegan']),
   consumption_level: z.enum(['high', 'medium', 'low']),
-  device_id: z.string(),
+  device_id: z.string().min(8).max(64),
 });
 
 const carbonResultSchema = z.object({
@@ -44,7 +46,34 @@ const carbonResultSchema = z.object({
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
-app.use(express.json());
+// CORS policy — restrict to known app origin
+app.use(cors({
+  origin: process.env.APP_URL || 'http://localhost:3000',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
+}));
+
+// Rate limiters
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+});
+
+const insightsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many AI requests, please wait before trying again.' },
+});
+
+app.use('/api/', generalLimiter);
+app.use('/api/insights', insightsLimiter);
+
+app.use(express.json({ limit: '10kb' }));
 
 // Security headers
 app.use((_req, res, next) => {
@@ -296,6 +325,11 @@ app.post('/api/insights', async (req, res) => {
     return res.status(400).json({ error: 'Missing carbon_result dataset.' });
   }
 
+  const parseResult = carbonResultSchema.safeParse(result);
+  if (!parseResult.success) {
+    return res.status(400).json({ error: 'Invalid carbon_result shape', issues: parseResult.error.issues });
+  }
+
   // If Gemini is not authenticated, gracefully use prebuilt rules-based engine
   if (!ai) {
     console.log('Gemini client not initialized, serving high-fidelity rules engine fallback.');
@@ -336,7 +370,7 @@ Constraints:
 - Do not speak conversational sentences before or after the JSON. Return only the parsable JSON.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.0-flash',
       contents: prompt,
       config: {
         systemInstruction: 'You are an elite sustainability consultant and climate researcher. Your task is to provide exactly 3 actionable, highly factual, and localized actions to reduce personal carbon footprint. Keep action text encouraging, professional, and dense with educational data. Never output anything except JSON.',
