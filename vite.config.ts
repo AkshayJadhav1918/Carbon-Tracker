@@ -2,7 +2,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
 
 export default defineConfig(() => {
   return {
@@ -26,9 +26,9 @@ export default defineConfig(() => {
         include: ['src/**/*.{ts,tsx}', 'server.ts'],
         exclude: ['src/test/**', 'src/main.tsx'],
         thresholds: {
-          lines: 60,
-          functions: 60,
-          branches: 50,
+          lines: 75,
+          functions: 75,
+          branches: 65,
         },
       },
     },

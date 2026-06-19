@@ -61,7 +61,8 @@ export default function App() {
       if (cached) {
         try {
           return JSON.parse(cached);
-        } catch (e) {}
+        } catch (_e) { console.warn('Invalid cached history, resetting.'); }
+
       }
     }
     return [];
@@ -293,7 +294,7 @@ export default function App() {
               <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight font-display">
                 Carbon Tracker
               </h1>
-              <p className="text-[10px] text-gray-600 font-mono hidden sm:block">Annual Footprint Tracker</p>
+              <p className="text-xs text-gray-600 font-mono hidden sm:block">Annual Footprint Tracker</p>
             </div>
           </div>
 
@@ -366,7 +367,7 @@ export default function App() {
               aria-label="Device sync code for tracking your calculation history"
             />
             {formErrors.device_id && (
-              <span className="text-[10px] text-red-500 font-medium">⚠️ Format error</span>
+              <span className="text-xs text-red-500 font-medium">⚠️ Format error</span>
             )}
           </div>
         </div>
@@ -752,14 +753,14 @@ export default function App() {
                           <span className="text-base" aria-hidden="true">{col}</span>
                           <div>
                             <p className="font-semibold text-gray-800 leading-none">{lbl}</p>
-                            <p className="text-[10px] text-gray-600 mt-0.5">Sector rank #{idx + 1}</p>
+                            <p className="text-xs text-gray-600 mt-0.5">Sector rank #{idx + 1}</p>
                           </div>
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-gray-900">
                             {c.kg >= 1000 ? `${(c.kg / 1000).toFixed(1)}t` : `${Math.round(c.kg)} kg`}
                           </p>
-                          <p className="text-[10px] text-primary-700 font-medium">{c.percentage}% of total</p>
+                          <p className="text-xs text-primary-700 font-medium">{c.percentage}% of total</p>
                         </div>
                       </div>
                     );
@@ -768,7 +769,7 @@ export default function App() {
 
                 <div className="p-3 bg-primary-50/50 border border-primary-100 rounded-xl flex items-start gap-2.5">
                   <Award className="w-4 h-4 text-primary-700 shrink-0 mt-0.5 motion-safe:animate-bounce" />
-                  <p className="text-[10px] text-primary-700 leading-normal">
+                  <p className="text-xs text-primary-700 leading-normal">
                     Reducing emissions in your top sectors (<span className="font-bold">{getCategoryLabel(carbonResult.ranked_categories[0].category)}</span>) offers the fastest pathway to meeting individual offset budgets.
                   </p>
                 </div>
@@ -816,7 +817,7 @@ export default function App() {
                             {getCategoryEmoji(insight.category)}
                           </span>
                           <span
-                            className={`text-[10px] text-white font-bold px-2 py-0.5 rounded-full shadow-sm ${
+                            className={`text-xs text-white font-bold px-2 py-0.5 rounded-full shadow-sm ${
                               colorMap[insight.priority] || 'bg-primary-500'
                             }`}
                           >
@@ -827,10 +828,10 @@ export default function App() {
                           {insight.action}
                         </p>
                         <div className="border-t border-gray-100/80 pt-3 space-y-1">
-                          <p className="text-[10px] text-gray-600">⏱️ Implementation Timeframe:</p>
+                          <p className="text-xs text-gray-600">⏱️ Implementation Timeframe:</p>
                           <p className="text-[11px] font-semibold text-gray-600">{insight.timeframe}</p>
                           <div className="pt-1.5 flex justify-between items-center text-xs">
-                            <span className="text-gray-650 text-[10px]">Est saving:</span>
+                            <span className="text-gray-650 text-xs">Est saving:</span>
                             <span className="font-bold text-primary-700 font-mono">
                               -{insight.estimated_saving_kg >= 1000
                                 ? `${(insight.estimated_saving_kg / 1000).toFixed(1)}t`
@@ -942,3 +943,4 @@ export default function App() {
     </div>
   );
 }
+
