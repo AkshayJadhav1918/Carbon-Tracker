@@ -1,4 +1,6 @@
 assets/
+history-storage.json
+metadata.json
 analyze.ts
 search-charts.ts
 node_modules/

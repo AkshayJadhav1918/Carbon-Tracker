@@ -52,7 +52,7 @@ const CustomTooltip: React.FC<any> = ({ active, payload }) => {
   );
 };
 
-export const CategoryBreakdownChart: React.FC<CategoryBreakdownChartProps> = ({
+const CategoryBreakdownChart: React.FC<CategoryBreakdownChartProps> = ({
   breakdown,
   rankedCategories,
 }) => {
@@ -68,7 +68,7 @@ export const CategoryBreakdownChart: React.FC<CategoryBreakdownChartProps> = ({
     <div>
       <div
         role="img"
-        aria-label="Bar chart showing annual carbon footprint broken down by category. A data table with the same information follows."
+        aria-label="Pie chart showing carbon footprint breakdown by category: transport, home energy, diet, and consumption"
         className="w-full h-56"
       >
         <ResponsiveContainer width="100%" height="100%">
@@ -123,4 +123,4 @@ export const CategoryBreakdownChart: React.FC<CategoryBreakdownChartProps> = ({
   );
 };
 
-export default CategoryBreakdownChart;
+export default React.memo(CategoryBreakdownChart);

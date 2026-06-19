@@ -29,7 +29,7 @@ const formatDateStr = (isoStr: string): string => {
   }
 };
 
-export const HistoryTable: React.FC<HistoryTableProps> = ({ history, onDeleteEntry }) => {
+const HistoryTable: React.FC<HistoryTableProps> = ({ history, onDeleteEntry }) => {
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
 
   const toggleExpand = (id: string) => {
@@ -211,4 +211,4 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ history, onDeleteEnt
   );
 };
 
-export default HistoryTable;
+export default React.memo(HistoryTable);

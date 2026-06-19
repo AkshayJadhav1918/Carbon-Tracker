@@ -1,6 +1,0 @@
-{
-  "name": "Carbon Footprint Awareness Platform",
-  "description": "An end-to-end full-stack carbon footprint calculator and advisory interface, allowing users to evaluate household energy, travel, diet, and consumer footprints, complete with historical trending and custom AI reduction recommendations.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

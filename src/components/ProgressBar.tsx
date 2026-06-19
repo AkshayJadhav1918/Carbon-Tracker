@@ -13,7 +13,7 @@ const formatKgValue = (val: number): string => {
   return val >= 1000 ? `${(val / 1000).toFixed(1)}t` : `${Math.round(val)} kg`;
 };
 
-export const ProgressBar: React.FC<ProgressBarProps> = ({
+const ProgressBar: React.FC<ProgressBarProps> = ({
   id,
   label,
   pct,
@@ -64,4 +64,4 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     </div>
   );
 };
-export default ProgressBar;
+export default React.memo(ProgressBar);

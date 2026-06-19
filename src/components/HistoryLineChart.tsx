@@ -30,7 +30,7 @@ const CustomLineTooltip: React.FC<any> = ({ active, payload }) => {
   );
 };
 
-export const HistoryLineChart: React.FC<HistoryLineChartProps> = ({ history }) => {
+const HistoryLineChart: React.FC<HistoryLineChartProps> = ({ history }) => {
   // Sort reverse chronologically for chart display (oldest to newest)
   const chartData = [...history]
     .reverse()
@@ -57,7 +57,7 @@ export const HistoryLineChart: React.FC<HistoryLineChartProps> = ({ history }) =
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
       <h3 className="text-sm font-semibold text-gray-700">Carbon Footprint Trend</h3>
-      <div className="w-full h-48" role="img" aria-label="Line chart graphing footprint changes over time.">
+      <div className="w-full h-48" role="img" aria-label="Line chart showing your carbon footprint history over time">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 8, right: 16, left: 10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
@@ -90,4 +90,4 @@ export const HistoryLineChart: React.FC<HistoryLineChartProps> = ({ history }) =
   );
 };
 
-export default HistoryLineChart;
+export default React.memo(HistoryLineChart);
