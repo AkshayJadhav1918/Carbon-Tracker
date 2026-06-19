@@ -18,8 +18,20 @@ const formatKgValue = (val: number): string => {
   return val >= 1000 ? `${(val / 1000).toFixed(1)}t` : `${Math.round(val)} kg`;
 };
 
+interface CustomLineTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    payload: {
+      date: string;
+      fullDate: string;
+      kg: number;
+    };
+  }>;
+}
+
 // Line chart custom tooltip
-const CustomLineTooltip: React.FC<any> = ({ active, payload }) => {
+const CustomLineTooltip: React.FC<CustomLineTooltipProps> = ({ active, payload }) => {
   if (!active || !payload || !payload.length) return null;
   const { value, payload: dataPayload } = payload[0];
   return (

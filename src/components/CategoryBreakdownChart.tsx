@@ -8,7 +8,7 @@ import {
   Tooltip,
   Cell,
 } from 'recharts';
-import { getCategoryLabel, getCategoryEmoji } from '../utils/categoryUtils';
+import { getCategoryLabel } from '../utils/categoryUtils';
 
 interface CategoryBreakdownChartProps {
   breakdown: {
@@ -40,8 +40,21 @@ const categoryColors: Record<string, string> = {
   general: '#86efac',
 };
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    payload: {
+      category: string;
+      label: string;
+      kg: number;
+      percentage: number;
+    };
+  }>;
+}
+
 // Custom tooltip renderer matching rr component in original JS
-const CustomTooltip: React.FC<any> = ({ active, payload }) => {
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
   if (!active || !payload || !payload.length) return null;
   const { value, payload: dataPayload } = payload[0];
   return (
@@ -53,7 +66,6 @@ const CustomTooltip: React.FC<any> = ({ active, payload }) => {
 };
 
 const CategoryBreakdownChart: React.FC<CategoryBreakdownChartProps> = ({
-  breakdown,
   rankedCategories,
 }) => {
   // Construct data items for the BarChart

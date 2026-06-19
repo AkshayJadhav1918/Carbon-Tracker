@@ -1,12 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Car,
-  Plane,
-  Home as HomeIcon,
-  ShoppingBag,
-  History,
   TrendingDown,
-  ChevronRight,
   RotateCcw,
   Sparkles,
   AlertTriangle,
@@ -61,7 +55,7 @@ export default function App() {
       if (cached) {
         try {
           return JSON.parse(cached);
-        } catch (_e) { console.warn('Invalid cached history, resetting.'); }
+        } catch { console.warn('Invalid cached history, resetting.'); }
 
       }
     }
@@ -98,7 +92,7 @@ export default function App() {
   };
 
   // Helper local validation check matching Zod restrictions
-  const validateField = (name: keyof CarbonInputs, value: any): string | undefined => {
+  const validateField = (name: keyof CarbonInputs, value: string | number): string | undefined => {
     if (name.startsWith('transport_km_')) {
       const num = Number(value);
       if (isNaN(num)) return 'Must be a valid number';
@@ -140,7 +134,7 @@ export default function App() {
     return undefined;
   };
 
-  const handleInputChange = useCallback((name: keyof CarbonInputs, val: any) => {
+  const handleInputChange = useCallback((name: keyof CarbonInputs, val: string | number) => {
     setInputs(prev => ({ ...prev, [name]: val }));
     if (touchedFields[name]) {
       const error = validateField(name, val);
@@ -247,9 +241,10 @@ export default function App() {
 
       // Transition smoothly of tabs to Results screen
       setActiveTab('results');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Calculation flow failure:', err);
-      setCalcError(err?.message || 'Calculation failed. Please check network logs and retry.');
+      const errMsg = err instanceof Error ? err.message : 'Calculation failed. Please check network logs and retry.';
+      setCalcError(errMsg);
     } finally {
       setIsCalculating(false);
       setInsightsLoading(false);
@@ -303,7 +298,7 @@ export default function App() {
             role="tablist"
             onKeyDown={(e) => {
               const tabs: Array<'calculator' | 'history'> = ['calculator', 'history'];
-              const current = tabs.indexOf(activeTab === 'results' ? 'calculator' : activeTab as any);
+              const current = tabs.indexOf((activeTab === 'results' ? 'calculator' : activeTab) as 'calculator' | 'history');
               if (e.key === 'ArrowRight') {
                 e.preventDefault();
                 handleTabChange(tabs[(current + 1) % tabs.length]);

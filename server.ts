@@ -242,9 +242,10 @@ app.post('/api/calculate', (req, res) => {
     };
 
     res.json(result);
-  } catch (err: any) {
+  } catch (err) {
     console.error('Calculate footprint error:', err);
-    res.status(500).json({ error: err?.message || 'Calculation failed' });
+    const message = err instanceof Error ? err.message : 'Calculation failed';
+    res.status(500).json({ error: message });
   }
 });
 
@@ -332,7 +333,6 @@ function getRulesBasedInsights(result: CarbonResult): Insight[] {
  */
 app.post('/api/insights', async (req, res) => {
   const result: CarbonResult = req.body.carbon_result;
-  const deviceId = req.body.device_id;
 
   if (!result) {
     return res.status(400).json({ error: 'Missing carbon_result dataset.' });
@@ -475,7 +475,7 @@ app.post('/api/entries', (req, res) => {
     saveHistoryToDisk();
 
     res.json({ status: 'success', entry_id: newEntry.id });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Save entry failure:', err);
     res.status(500).json({ error: 'Failed to record entry' });
   }
@@ -497,7 +497,7 @@ app.get('/api/entries/:deviceId', (req, res) => {
     }
     const userHistory = historyCacheByDevice.get(deviceId) || [];
     res.json(userHistory);
-  } catch (err: any) {
+  } catch (err) {
     console.error('Get history failure:', err);
     res.status(500).json({ error: 'Failed to extract past carbon records' });
   }
@@ -524,7 +524,7 @@ app.delete('/api/entries/:entryId', (req, res) => {
     }
     saveHistoryToDisk();
     res.json({ status: 'deleted', entry_id: entryId });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Delete entry failure:', err);
     res.status(500).json({ error: 'Failed to delete entry' });
   }

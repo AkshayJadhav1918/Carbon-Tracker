@@ -24,7 +24,7 @@ export default defineConfig(() => {
         provider: 'v8',
         reporter: ['text', 'html', 'lcov'],
         include: ['src/**/*.{ts,tsx}', 'server.ts'],
-        exclude: ['src/test/**', 'src/main.tsx'],
+        exclude: ['src/test/**', 'src/main.tsx', 'src/types.ts'],
         thresholds: {
           lines: 75,
           functions: 75,

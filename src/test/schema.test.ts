@@ -44,7 +44,7 @@ describe('CarbonInputs Zod Schema Validation', () => {
   });
 
   it('fails if a required field is missing', () => {
-    const invalidInputs = { ...validInputs } as any;
+    const invalidInputs = { ...validInputs } as Partial<typeof validInputs>;
     delete invalidInputs.diet_type;
 
     const result = carbonInputsSchema.safeParse(invalidInputs);

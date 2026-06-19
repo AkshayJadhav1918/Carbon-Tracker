@@ -4,7 +4,7 @@ import React from 'react';
 
 // Mock recharts globally so all chart components return a simple div
 vi.mock('recharts', () => {
-  const DummyComponent = ({ children, className, id }: any) => {
+  const DummyComponent = ({ children, className, id }: { children?: React.ReactNode; className?: string; id?: string }) => {
     return React.createElement('div', { className, id, 'data-testid': 'mock-recharts' }, children);
   };
 
@@ -17,6 +17,8 @@ vi.mock('recharts', () => {
     Legend: DummyComponent,
     LineChart: DummyComponent,
     Line: DummyComponent,
+    BarChart: DummyComponent,
+    Bar: DummyComponent,
     XAxis: DummyComponent,
     YAxis: DummyComponent,
     CartesianGrid: DummyComponent,

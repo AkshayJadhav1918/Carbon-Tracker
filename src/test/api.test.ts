@@ -142,7 +142,7 @@ describe('DELETE /api/entries/:entryId', () => {
     expect(deleteRes.body.status).toBe('deleted');
 
     const getRes = await request(app).get('/api/entries/delete-test-device');
-    expect(getRes.body.find((e: any) => e.id === entryId)).toBeUndefined();
+    expect(getRes.body.find((e: { id: string }) => e.id === entryId)).toBeUndefined();
   });
 
   it('returns 404 for non-existent entry ID', async () => {

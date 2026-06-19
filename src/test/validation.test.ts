@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 // Mirror the validateField logic from App.tsx for isolated unit testing
-function validateField(name: string, value: any): string | undefined {
+function validateField(name: string, value: unknown): string | undefined {
   if (name.startsWith('transport_km_')) {
     const num = Number(value);
     if (isNaN(num)) return 'Must be a valid number';
